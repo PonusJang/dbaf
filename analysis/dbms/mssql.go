@@ -13,13 +13,6 @@ import (
 
 const maxMSSQLPayloadLen = 4096
 
-const (
-	mssqlEncryptionAvailableAndOff = iota
-	mssqlEncryptionAvailableAndOn
-	mssqlEncryptionNotAvailable
-	mssqlEncryptionRequired
-)
-
 //MSSQL DBMS
 type MSSQL struct {
 	client      net.Conn
@@ -63,7 +56,7 @@ func (m *MSSQL) Handler() error {
 		return err
 	}
 	if !success {
-		log.Warn("Login failed")
+		log.Warn("登录失败")
 		return nil
 	}
 	for {
@@ -106,7 +99,7 @@ func (m *MSSQL) handleLogin() (success bool, err error) {
 	}
 
 	if buf[0] != 0x12 {
-		err = errors.New("packet is not PRELOGIN")
+		err = errors.New("该报文不是预登录请求报文")
 		return
 	}
 
@@ -121,7 +114,7 @@ func (m *MSSQL) handleLogin() (success bool, err error) {
 	}
 
 	if buf[0] != 0x4 {
-		err = errors.New("packet is not PRELOGIN response")
+		err = errors.New("该报文不是预登录响应报文")
 		return
 	}
 

@@ -54,27 +54,23 @@ func (o *Oracle) Handler() error {
 		}
 		var eof bool
 
-		switch buf[4] { //Packet Type
-		case 0x01: //Connect
+		switch buf[4] { // 报文类型
+		case 0x01: //连接
 			connectDataLen := int(buf[24])*256 + int(buf[25])
 			connectData := buf[len(buf)-connectDataLen:]
 
-			//Extracting Service name
-			// FIXME: avoid string
 			tmp1 := bytes.Split(connectData, []byte("SERVICE_NAME="))
 			tmp2 := bytes.Split(tmp1[1], []byte{0x29}) // )
 			o.currentDB = tmp2[0]
 
 			log.Debug("Connect Data: %s", connectData)
 			log.Debug("Service Name: %s", o.currentDB)
-		case 0x06: //Data
+		case 0x06: //数据
 			data := buf[8:]
 			eof = data[1] == 0x40
 			if !eof {
 				payload := data[2:]
 				if len(payload) > 16 && payload[0] == 0x11 && payload[15] == 0x03 && payload[16] == 0x5e {
-					// I have no idea what this TTC is but its on top of query
-					//simply skiping it
 					payload = payload[15:]
 				}
 				switch payload[0] {
@@ -90,10 +86,10 @@ func (o *Oracle) Handler() error {
 							Time:     time.Now(),
 						}
 						ProcessContext(context)
-					case 0x76: // Reading username
+					case 0x76: // 读取用户名
 						val, _ := PascalString(payload[19:])
 						o.username = val
-						log.Debug("Username: %s", o.username)
+						log.Debug("用户名: %s", o.username)
 					}
 				}
 			}
