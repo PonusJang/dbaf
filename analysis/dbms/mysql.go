@@ -137,7 +137,7 @@ func (m *MySQL) handleLogin() (success bool, err error) {
 			return
 		}
 	}
-	log.Debug("SSL bit: %v", ssl)
+	log.Debug("使用SSL: %v", ssl)
 
 	if len(m.currentDB) != 0 { //db Selected
 		buf, err = ReadPacket(m.server)
@@ -219,7 +219,7 @@ func MySQLGetUsernameDB(data []byte) (username, db []byte) {
 
 	nullByteIndex := bytes.IndexByte(data[pos:], 0x00)
 	username = data[pos : nullByteIndex+pos]
-	log.Debug("Username: %s", username)
+	log.Debug("用户名: %s", username)
 	pos += nullByteIndex + 22
 	nullByteIndex = bytes.IndexByte(data[pos:], 0x00)
 
@@ -227,7 +227,7 @@ func MySQLGetUsernameDB(data []byte) (username, db []byte) {
 
 	if nullByteIndex != 0 && dbSelectedCheck {
 		db = data[pos : nullByteIndex+pos]
-		log.Debug("Database: %s", db)
+		log.Debug("数据库: %s", db)
 	}
 	return
 }

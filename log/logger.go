@@ -13,7 +13,6 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
 	log.SetFormatter(&log.JSONFormatter{})
-	log.SetReportCaller(true)
 }
 
 func Info(msg ...interface{}) {
