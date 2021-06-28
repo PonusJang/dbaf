@@ -1,11 +1,8 @@
-package mysql
+package dbms
 
 import (
 	"bytes"
 	"crypto/tls"
-	flow "dbaf/analysis/io"
-	"dbaf/analysis/sql"
-	"dbaf/analysis/utils"
 	"dbaf/log"
 	"errors"
 	"io"
@@ -39,7 +36,7 @@ func (m *MySQL) SetSockets(c, s net.Conn) {
 }
 
 func (m *MySQL) Close() {
-	defer utils.HandlePanic()
+	defer HandlePanic()
 	m.client.Close()
 	m.server.Close()
 }
@@ -49,7 +46,7 @@ func (m *MySQL) DefaultPort() uint {
 }
 
 func (m *MySQL) Handler() error {
-	defer utils.HandlePanic()
+	defer HandlePanic()
 	defer m.Close()
 	success, err := m.handleLogin()
 	if err != nil {
@@ -61,28 +58,28 @@ func (m *MySQL) Handler() error {
 	}
 	for {
 		var buf []byte
-		buf, err = flow.ReadPacket(m.client)
+		buf, err = ReadPacket(m.client)
 		if err != nil || len(buf) < 5 {
 			return err
 		}
 		data := buf[4:]
 
 		switch data[0] {
-		case 0x01: //Quit
+		case 0x01: // 退出
 			return nil
-		case 0x02: //UseDB
+		case 0x02: //  use database
 			m.currentDB = data[1:]
 			log.Debug("使用数据库: %v", m.currentDB)
-		case 0x03: //Query
+		case 0x03: //  查询
 			query := data[1:]
-			context := sql.QueryContext{
+			context := QueryContext{
 				Query:    query,
 				Database: m.currentDB,
 				User:     m.username,
-				Client:   utils.RemoteAddrToIP(m.client.RemoteAddr()),
+				Client:   RemoteAddrToIP(m.client.RemoteAddr()),
 				Time:     time.Now(),
 			}
-			sql.ProcessContext(context)
+			ProcessContext(context)
 		}
 
 		_, err = m.server.Write(buf)
@@ -90,21 +87,23 @@ func (m *MySQL) Handler() error {
 			return err
 		}
 
-		err = flow.ReadWrite(m.server, m.client, m.reader)
+		err = ReadWrite(m.server, m.client, m.reader)
 		if err != nil {
 			return err
 		}
 	}
 }
 
+// 处理登录
+
 func (m *MySQL) handleLogin() (success bool, err error) {
 
-	err = flow.ReadWrite(m.server, m.client, flow.ReadPacket)
+	err = ReadWrite(m.server, m.client, ReadPacket)
 	if err != nil {
 		return
 	}
 
-	buf, err := flow.ReadPacket(m.client)
+	buf, err := ReadPacket(m.client)
 	if err != nil {
 		return
 	}
@@ -112,20 +111,20 @@ func (m *MySQL) handleLogin() (success bool, err error) {
 
 	m.username, m.currentDB = MySQLGetUsernameDB(data)
 
-	//check if ssl is required
+	//判断是否SSL
 	ssl := (data[1] & 0x08) == 0x08
 
-	//Send Login Request
+	//转发登录
 	_, err = m.server.Write(buf)
 	if err != nil {
 		return
 	}
 	if ssl {
-		m.client, m.server, err = utils.TurnSSL(m.client, m.server, m.certificate)
+		m.client, m.server, err = TurnSSL(m.client, m.server, m.certificate)
 		if err != nil {
 			return
 		}
-		buf, err = flow.ReadPacket(m.client)
+		buf, err = ReadPacket(m.client)
 		if err != nil {
 			return
 		}
@@ -141,24 +140,23 @@ func (m *MySQL) handleLogin() (success bool, err error) {
 	log.Debug("SSL bit: %v", ssl)
 
 	if len(m.currentDB) != 0 { //db Selected
-		//Receive OK
-		buf, err = flow.ReadPacket(m.server)
+		buf, err = ReadPacket(m.server)
 		if err != nil {
 			return
 		}
 	} else {
 		//Receive Auth Switch Request
-		err = flow.ReadWrite(m.server, m.client, flow.ReadPacket)
+		err = ReadWrite(m.server, m.client, ReadPacket)
 		if err != nil {
 			return
 		}
 		//Receive Auth Switch Response
-		err = flow.ReadWrite(m.client, m.server, flow.ReadPacket)
+		err = ReadWrite(m.client, m.server, ReadPacket)
 		if err != nil {
 			return
 		}
 		//Receive Response Status
-		buf, err = flow.ReadPacket(m.server)
+		buf, err = ReadPacket(m.server)
 		if err != nil {
 			return
 		}
@@ -168,10 +166,12 @@ func (m *MySQL) handleLogin() (success bool, err error) {
 		success = true
 	}
 
-	//Send Response Status
+	// 往客户端发送响应
 	_, err = m.client.Write(buf)
 	return
 }
+
+// 读取报文
 
 func MySQLReadPacket(src io.Reader) ([]byte, error) {
 	data := make([]byte, maxMySQLPayloadLen)

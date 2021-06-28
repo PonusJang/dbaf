@@ -1,7 +1,8 @@
-package utils
+package dbms
 
 import (
 	"crypto/tls"
+	logger "dbaf/log"
 	"net"
 )
 
@@ -264,6 +265,8 @@ var decodingTable = [...]byte{
 	'\x9f', // 0xFF -> CONTROL
 }
 
+// ebc转asc
+
 func ebc2asc(ebc []byte) []byte {
 	asc := make([]byte, len(ebc))
 	for i, v := range ebc {
@@ -272,41 +275,38 @@ func ebc2asc(ebc []byte) []byte {
 	return asc
 }
 
+//?
+
 func pascalString(data []byte) (b []byte, size uint) {
 	size = uint(data[0])
 	b = data[1 : size+1]
 	return
 }
 
+// 获取远程IP地址
+
 func RemoteAddrToIP(addr net.Addr) []byte {
 	return addr.(*net.TCPAddr).IP
 }
 
+// 处理异常
+
 func HandlePanic() {
 	if r := recover(); r != nil {
-		//logger.Warningf("%v", r)
+		logger.Warn("%v", r)
 	}
 }
+
+// 三字节大端序转 int
 
 func threeByteBigEndianToInt(data []byte) uint {
 	return uint(data[2])*65536 + uint(data[1])*256 + uint(data[0])
 }
 
-//processContext will handle context depending on running mode
-//func processContext(context sql.QueryContext) (err error) {
-//	logger.Debugf("Query: %s", context.Query)
-//
-//	if config.Config.Learning {
-//		return training.AddToTrainingSet(context)
-//	}
-//	if config.Config.ActionFunc != nil && !training.CheckQuery(context) {
-//		return config.Config.ActionFunc()
-//	}
-//	return nil
-//}
+// 处理SSL连接
 
 func TurnSSL(client net.Conn, server net.Conn, certificate tls.Certificate) (net.Conn, net.Conn, error) {
-	//logger.Debugf("SSL connection")
+	logger.Debug("SSL connection")
 	tlsConnClient := tls.Server(client, &tls.Config{
 		Certificates:       []tls.Certificate{certificate},
 		InsecureSkipVerify: true,
@@ -314,7 +314,7 @@ func TurnSSL(client net.Conn, server net.Conn, certificate tls.Certificate) (net
 	if err := tlsConnClient.Handshake(); err != nil {
 		return nil, nil, err
 	}
-	//logger.Debug("Client handshake done")
+	logger.Debug("Client handshake done")
 
 	tlsConnServer := tls.Client(server, &tls.Config{
 		InsecureSkipVerify: true,
@@ -322,6 +322,6 @@ func TurnSSL(client net.Conn, server net.Conn, certificate tls.Certificate) (net
 	if err := tlsConnServer.Handshake(); err != nil {
 		return nil, nil, err
 	}
-	//logger.Debug("Server handshake done")
+	logger.Debug("Server handshake done")
 	return tlsConnClient, tlsConnServer, nil
 }

@@ -1,4 +1,4 @@
-package io
+package dbms
 
 import (
 	"bytes"
@@ -9,6 +9,8 @@ import (
 const (
 	chunkSize = 4096
 )
+
+//读取报文
 
 func ReadPacket(conn io.Reader) ([]byte, error) {
 	data := make([]byte, chunkSize)
@@ -25,6 +27,8 @@ func ReadPacket(conn io.Reader) ([]byte, error) {
 	}
 	return buf.Bytes(), nil
 }
+
+// 将请求转发后端数据库
 
 func ReadWrite(src, dst net.Conn, reader func(io.Reader) ([]byte, error)) error {
 

@@ -5,6 +5,8 @@ import (
 	"net"
 )
 
+// 数据库接口
+
 type DBMS interface {
 	DefaultPort() uint                         // 数据库端口
 	Close()                                    //关闭

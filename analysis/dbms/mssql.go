@@ -1,8 +1,7 @@
-package mssql
+package dbms
 
 import (
 	"crypto/tls"
-	flow "dbaf/analysis/io"
 	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -10,9 +9,6 @@ import (
 	"net"
 	"sync"
 	"time"
-
-	"dbaf/analysis/sql"
-	"dbaf/analysis/utils"
 )
 
 const maxMSSQLPayloadLen = 4096
@@ -49,7 +45,7 @@ func (m *MSSQL) SetSockets(c, s net.Conn) {
 }
 
 func (m *MSSQL) Close() {
-	defer utils.HandlePanic()
+	defer HandlePanic()
 	m.client.Close()
 	m.server.Close()
 }
@@ -59,7 +55,7 @@ func (m *MSSQL) DefaultPort() uint {
 }
 
 func (m *MSSQL) Handler() error {
-	defer utils.HandlePanic()
+	defer HandlePanic()
 	defer m.Close()
 
 	success, err := m.handleLogin()
@@ -80,14 +76,14 @@ func (m *MSSQL) Handler() error {
 		switch buf[0] {
 		case 0x01: //SQL batch
 			query := buf[8:]
-			context := sql.QueryContext{
+			context := QueryContext{
 				Query:    query,
 				Database: m.currentDB,
 				User:     m.username,
-				Client:   utils.RemoteAddrToIP(m.client.RemoteAddr()),
+				Client:   RemoteAddrToIP(m.client.RemoteAddr()),
 				Time:     time.Now(),
 			}
-			sql.ProcessContext(context)
+			ProcessContext(context)
 		}
 
 		_, err = m.server.Write(buf)
@@ -95,7 +91,7 @@ func (m *MSSQL) Handler() error {
 			return err
 		}
 
-		err = flow.ReadWrite(m.server, m.client, m.reader)
+		err = ReadWrite(m.server, m.client, m.reader)
 		if err != nil {
 			return err
 		}
@@ -158,7 +154,7 @@ func (m *MSSQL) handleLogin() (success bool, err error) {
 
 	for {
 		//Receive PreLogin Request
-		err = flow.ReadWrite(m.client, m.server, m.reader)
+		err = ReadWrite(m.client, m.server, m.reader)
 		if err != nil {
 			return
 		}

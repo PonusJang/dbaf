@@ -1,11 +1,8 @@
-package oracle
+package dbms
 
 import (
 	"bytes"
 	"crypto/tls"
-	flow "dbaf/analysis/io"
-	"dbaf/analysis/sql"
-	"dbaf/analysis/utils"
 	"dbaf/log"
 	"io"
 	"net"
@@ -31,13 +28,13 @@ func (o *Oracle) SetReader(f func(io.Reader) ([]byte, error)) {
 }
 
 func (o *Oracle) SetSockets(c, s net.Conn) {
-	defer utils.HandlePanic()
+	defer HandlePanic()
 	o.client = c
 	o.server = s
 }
 
 func (o *Oracle) Close() {
-	defer utils.HandlePanic()
+	defer HandlePanic()
 	o.client.Close()
 	o.server.Close()
 }
@@ -47,7 +44,7 @@ func (o *Oracle) DefaultPort() uint {
 }
 
 func (o *Oracle) Handler() error {
-	defer utils.HandlePanic()
+	defer HandlePanic()
 	defer o.Close()
 
 	for {
@@ -84,17 +81,17 @@ func (o *Oracle) Handler() error {
 				case 0x03:
 					switch payload[1] {
 					case 0x5e: //reading query
-						query, _ := sql.PascalString(payload[70:])
-						context := sql.QueryContext{
+						query, _ := PascalString(payload[70:])
+						context := QueryContext{
 							Query:    query,
 							Database: o.currentDB,
 							User:     o.username,
-							Client:   utils.RemoteAddrToIP(o.client.RemoteAddr()),
+							Client:   RemoteAddrToIP(o.client.RemoteAddr()),
 							Time:     time.Now(),
 						}
-						sql.ProcessContext(context)
+						ProcessContext(context)
 					case 0x76: // Reading username
-						val, _ := sql.PascalString(payload[19:])
+						val, _ := PascalString(payload[19:])
 						o.username = val
 						log.Debug("Username: %s", o.username)
 					}
@@ -107,7 +104,7 @@ func (o *Oracle) Handler() error {
 			return err
 		}
 
-		err = flow.ReadWrite(o.server, o.client, o.readPacket)
+		err = ReadWrite(o.server, o.client, o.readPacket)
 		if err != nil {
 			return err
 		}
