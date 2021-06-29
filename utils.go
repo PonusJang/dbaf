@@ -1,14 +1,14 @@
 package main
 
 import (
-	"dbaf/analysis/dbms"
+	dbms2 "dbaf/dbms"
 	"dbaf/log"
 	"io"
 	"net"
 )
 
-func generateDBMS() (dbms.DBMS, func(io.Reader) ([]byte, error)) {
-	return new(dbms.MySQL), dbms.MySQLReadPacket
+func generateDBMS() (dbms2.DBMS, func(io.Reader) ([]byte, error)) {
+	return new(dbms2.MySQL), dbms2.MySQLReadPacket
 }
 
 func handleClient(listenConn net.Conn, serverAddr *net.TCPAddr) error {
