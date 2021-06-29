@@ -2,11 +2,12 @@ package dbms
 
 import (
 	"bytes"
+	"dbaf/log"
 	"encoding/binary"
+	"github.com/koangel/grapeSQLI"
+	"github.com/xwb1989/sqlparser"
 	"sync"
 	"time"
-
-	"github.com/xwb1989/sqlparser"
 )
 
 //QueryContext holds information around query
@@ -102,6 +103,11 @@ func Pattern(query []byte) []byte {
 }
 
 func ProcessContext(context QueryContext) {
+	log.Debug("查询：" + string(context.Query))
+	err := gsqli.SQLInject(string(context.Query))
+	if err != nil {
+		log.Warn(err)
+	}
 
 }
 

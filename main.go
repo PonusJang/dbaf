@@ -2,6 +2,7 @@ package main
 
 import (
 	"dbaf/log"
+	"dbaf/manager"
 	"net"
 )
 
@@ -22,6 +23,7 @@ func main() {
 			continue
 		}
 		go handleClient(listenConn, serverAddr)
+		go manager.RunServer()
 	}
 
 }

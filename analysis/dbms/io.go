@@ -33,6 +33,7 @@ func ReadPacket(conn io.Reader) ([]byte, error) {
 func ReadWrite(src, dst net.Conn, reader func(io.Reader) ([]byte, error)) error {
 
 	buf, err := reader(src)
+
 	if err != nil {
 		return err
 	}

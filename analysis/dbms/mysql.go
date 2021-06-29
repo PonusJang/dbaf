@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"dbaf/log"
-	"errors"
 	"io"
 	"net"
 	"time"
@@ -63,13 +62,12 @@ func (m *MySQL) Handler() error {
 			return err
 		}
 		data := buf[4:]
-
 		switch data[0] {
 		case 0x01: // 退出
 			return nil
 		case 0x02: //  use database
 			m.currentDB = data[1:]
-			log.Debug("使用数据库: %v", m.currentDB)
+			log.Debug("使用数据库: %v", string(m.currentDB))
 		case 0x03: //  查询
 			query := data[1:]
 			context := QueryContext{
@@ -82,7 +80,9 @@ func (m *MySQL) Handler() error {
 			ProcessContext(context)
 		}
 
+		// 转发
 		_, err = m.server.Write(buf)
+
 		if err != nil {
 			return err
 		}
@@ -175,40 +175,8 @@ func (m *MySQL) handleLogin() (success bool, err error) {
 
 func MySQLReadPacket(src io.Reader) ([]byte, error) {
 	data := make([]byte, maxMySQLPayloadLen)
-	var prevData []byte
-	for {
-
-		n, err := src.Read(data)
-		if err != nil {
-			return nil, err
-		}
-		data = data[:n]
-		pktLen := int(uint32(data[0]) | uint32(data[1])<<8 | uint32(data[2])<<16)
-
-		if pktLen == 0 {
-			if prevData == nil {
-				return nil, errors.New("Malform Packet")
-			}
-
-			return prevData, nil
-		}
-
-		eof := true
-		if len(data) > 8 {
-			tail := data[len(data)-9:]
-			eof = tail[0] == 5 && tail[1] == 0 && tail[2] == 0 && tail[4] == 0xfe
-		}
-
-		if eof {
-			if prevData == nil {
-				return data, nil
-			}
-
-			return append(prevData, data...), nil
-		}
-
-		prevData = append(prevData, data...)
-	}
+	_, err := src.Read(data)
+	return data, err
 }
 
 func MySQLGetUsernameDB(data []byte) (username, db []byte) {
@@ -219,7 +187,7 @@ func MySQLGetUsernameDB(data []byte) (username, db []byte) {
 
 	nullByteIndex := bytes.IndexByte(data[pos:], 0x00)
 	username = data[pos : nullByteIndex+pos]
-	log.Debug("用户名: %s", username)
+	log.Debug("用户名: %s", string(username))
 	pos += nullByteIndex + 22
 	nullByteIndex = bytes.IndexByte(data[pos:], 0x00)
 
@@ -227,7 +195,7 @@ func MySQLGetUsernameDB(data []byte) (username, db []byte) {
 
 	if nullByteIndex != 0 && dbSelectedCheck {
 		db = data[pos : nullByteIndex+pos]
-		log.Debug("数据库: %s", db)
+		log.Debug("数据库: %s", string(db))
 	}
 	return
 }
