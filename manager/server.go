@@ -10,7 +10,7 @@ import (
 // 管理 web端
 
 func RunServer() {
-
+	gin.SetMode(gin.DebugMode)
 	r := gin.Default()
 	router.LoadUserRouter(r)
 

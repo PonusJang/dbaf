@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "dbaf/common"
 	"dbaf/log"
 	"dbaf/manager"
 	"net"
@@ -15,6 +16,8 @@ func main() {
 	}
 	defer l.Close()
 
+	go manager.RunServer()
+
 	for {
 
 		listenConn, err := l.Accept()
@@ -23,7 +26,6 @@ func main() {
 			continue
 		}
 		go handleClient(listenConn, serverAddr)
-		go manager.RunServer()
 	}
 
 }

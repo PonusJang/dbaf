@@ -3,6 +3,7 @@ package dbms
 import (
 	"bytes"
 	"crypto/tls"
+	"dbaf/common"
 	"dbaf/log"
 	"io"
 	"net"
@@ -35,7 +36,7 @@ func (m *MySQL) SetSockets(c, s net.Conn) {
 }
 
 func (m *MySQL) Close() {
-	defer HandlePanic()
+	defer common.HandlePanic()
 	m.client.Close()
 	m.server.Close()
 }
@@ -45,10 +46,11 @@ func (m *MySQL) DefaultPort() uint {
 }
 
 func (m *MySQL) Handler() error {
-	defer HandlePanic()
+	defer common.HandlePanic()
 	defer m.Close()
 	success, err := m.handleLogin()
 	if err != nil {
+		log.Error("处理登录失败")
 		return err
 	}
 	if !success {
@@ -70,25 +72,28 @@ func (m *MySQL) Handler() error {
 			log.Debug("使用数据库: %v", string(m.currentDB))
 		case 0x03: //  查询
 			query := data[1:]
-			context := QueryContext{
+			context := common.QueryContext{
 				Query:    query,
 				Database: m.currentDB,
 				User:     m.username,
-				Client:   RemoteAddrToIP(m.client.RemoteAddr()),
+				Client:   common.RemoteAddrToIP(m.client.RemoteAddr()),
+				Server:   common.RemoteAddrToIP(m.server.LocalAddr()),
 				Time:     time.Now(),
 			}
-			ProcessContext(context)
+			common.ProcessContext(context)
 		}
 
 		// 转发
 		_, err = m.server.Write(buf)
 
 		if err != nil {
+			log.Error("发送后端失败")
 			return err
 		}
 
 		err = ReadWrite(m.server, m.client, m.reader)
 		if err != nil {
+			log.Error("转发失败")
 			return err
 		}
 	}
@@ -100,11 +105,13 @@ func (m *MySQL) handleLogin() (success bool, err error) {
 
 	err = ReadWrite(m.server, m.client, ReadPacket)
 	if err != nil {
+		log.Error("handleLogin失败")
 		return
 	}
 
 	buf, err := ReadPacket(m.client)
 	if err != nil {
+		log.Error("handleLogin ReadPacket失败")
 		return
 	}
 	data := buf[4:]
@@ -117,10 +124,11 @@ func (m *MySQL) handleLogin() (success bool, err error) {
 	//转发登录
 	_, err = m.server.Write(buf)
 	if err != nil {
+		log.Error("handleLogin 转发登录失败")
 		return
 	}
 	if ssl {
-		m.client, m.server, err = TurnSSL(m.client, m.server, m.certificate)
+		m.client, m.server, err = common.TurnSSL(m.client, m.server, m.certificate)
 		if err != nil {
 			return
 		}
@@ -134,6 +142,7 @@ func (m *MySQL) handleLogin() (success bool, err error) {
 		//Send Login Request
 		_, err = m.server.Write(buf)
 		if err != nil {
+			log.Error("handleLogin 转发登录失败2")
 			return
 		}
 	}
@@ -171,14 +180,6 @@ func (m *MySQL) handleLogin() (success bool, err error) {
 	return
 }
 
-// 读取报文
-
-func MySQLReadPacket(src io.Reader) ([]byte, error) {
-	data := make([]byte, maxMySQLPayloadLen)
-	_, err := src.Read(data)
-	return data, err
-}
-
 func MySQLGetUsernameDB(data []byte) (username, db []byte) {
 	if len(data) < 33 {
 		return
@@ -198,4 +199,10 @@ func MySQLGetUsernameDB(data []byte) (username, db []byte) {
 		log.Debug("数据库: %s", string(db))
 	}
 	return
+}
+
+func MySQLReadPacket(src io.Reader) ([]byte, error) {
+	data := make([]byte, maxMySQLPayloadLen)
+	_, err := src.Read(data)
+	return data, err
 }

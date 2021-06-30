@@ -1,14 +1,15 @@
 package main
 
 import (
-	dbms2 "dbaf/dbms"
+	db "dbaf/dbms"
 	"dbaf/log"
 	"io"
 	"net"
+	"time"
 )
 
-func generateDBMS() (dbms2.DBMS, func(io.Reader) ([]byte, error)) {
-	return new(dbms2.MySQL), dbms2.MySQLReadPacket
+func generateDBMS() (db.DBMS, func(io.Reader) ([]byte, error)) {
+	return new(db.MySQL), db.MySQLReadPacket
 }
 
 func handleClient(listenConn net.Conn, serverAddr *net.TCPAddr) error {
@@ -20,16 +21,14 @@ func handleClient(listenConn net.Conn, serverAddr *net.TCPAddr) error {
 		listenConn.Close()
 		return err
 	}
-	//if config.Config.Timeout > 0 {
-	//	if err = listenConn.SetDeadline(time.Now().Add(config.Config.Timeout)); err != nil {
-	//		return err
-	//	}
-	//	if err = serverConn.SetDeadline(time.Now().Add(config.Config.Timeout)); err != nil {
-	//		return err
-	//	}
-	//}
+
+	listenConn.SetReadDeadline(time.Now().Add(time.Minute * 1))
+	serverConn.SetReadDeadline(time.Now().Add(time.Minute * 1))
+
 	log.Debug("目标数据库: %s", serverConn.RemoteAddr())
 	d.SetSockets(listenConn, serverConn)
+
+	//设置证书
 	//d.SetCertificate(config.Config.TLSCertificate, config.Config.TLSPrivateKey)
 	d.SetReader(reader)
 	err = d.Handler()

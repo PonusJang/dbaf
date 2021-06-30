@@ -1,10 +1,33 @@
-package dbms
+package common
 
 import (
 	"crypto/tls"
 	logger "dbaf/log"
+	gsqli "github.com/koangel/grapeSQLI"
+	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 	"net"
+	"time"
 )
+
+//QueryContext holds information around query
+type QueryContext struct {
+	Query    []byte
+	User     []byte
+	Client   string
+	Server   string
+	Database []byte
+	Time     time.Time
+}
+
+type Record struct {
+	Id           uuid.UUID `json:"id,"bson:"id"`
+	Client       string    `json:"client,"bson:"client"`
+	Server       string    `json:"server,"bson:"server"`
+	Query        string    `json:"query",bson:"query"`
+	IllegalByLib bool      `json:"illegal_by_lib",bson:"illegal_by_lib"`
+	Created      time.Time `json:"created",bson:"created"`
+}
 
 var decodingTable = [...]byte{
 	'\x00', // 0x00 -> NULL
@@ -265,46 +288,22 @@ var decodingTable = [...]byte{
 	'\x9f', // 0xFF -> CONTROL
 }
 
-// ebc转asc
-
-func ebc2asc(ebc []byte) []byte {
-	asc := make([]byte, len(ebc))
-	for i, v := range ebc {
-		asc[i] = decodingTable[v]
-	}
-	return asc
-}
-
-//?
-
-func pascalString(data []byte) (b []byte, size uint) {
-	size = uint(data[0])
-	b = data[1 : size+1]
-	return
-}
-
 // 获取远程IP地址
 
-func RemoteAddrToIP(addr net.Addr) []byte {
-	return addr.(*net.TCPAddr).IP
+func RemoteAddrToIP(addr net.Addr) string {
+	return addr.(*net.TCPAddr).IP.String()
 }
 
 // 处理异常
 
 func HandlePanic() {
 	if r := recover(); r != nil {
+		logger.Debug("HandlePanic")
 		logger.Warn("%v", r)
 	}
 }
 
-// 三字节大端序转 int
-
-func threeByteBigEndianToInt(data []byte) uint {
-	return uint(data[2])*65536 + uint(data[1])*256 + uint(data[0])
-}
-
 // 处理SSL连接
-
 func TurnSSL(client net.Conn, server net.Conn, certificate tls.Certificate) (net.Conn, net.Conn, error) {
 	logger.Debug("SSL connection")
 	tlsConnClient := tls.Server(client, &tls.Config{
@@ -324,4 +323,42 @@ func TurnSSL(client net.Conn, server net.Conn, certificate tls.Certificate) (net
 	}
 	logger.Debug("Server handshake done")
 	return tlsConnClient, tlsConnServer, nil
+}
+
+// for oraccle
+
+func PascalString(data []byte) (b []byte, size uint) {
+	size = uint(data[0])
+	b = data[1 : size+1]
+	return
+}
+
+func ProcessContext(context QueryContext) bool {
+	log.Debug("查询：" + string(context.Query))
+	err := gsqli.SQLInject(string(context.Query))
+	if err != nil {
+		logger.Error(err)
+		tmp := Record{
+			Id:           uuid.NewV4(),
+			Query:        string(context.Query),
+			Client:       context.Client,
+			Server:       context.Server,
+			IllegalByLib: true,
+			Created:      time.Now(),
+		}
+		logger.Info(tmp.Server)
+		mgoSession := GetSession()
+		e := mgoSession.DB("dbaf").C("dbaf").Insert(&tmp)
+		if e != nil {
+			logger.Error(e)
+		}
+		return true
+	}
+	return false
+}
+
+func handlePanic() {
+	if r := recover(); r != nil {
+		logger.Warn("%v", r)
+	}
 }

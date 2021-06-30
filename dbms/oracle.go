@@ -3,6 +3,7 @@ package dbms
 import (
 	"bytes"
 	"crypto/tls"
+	"dbaf/common"
 	"dbaf/log"
 	"io"
 	"net"
@@ -28,13 +29,13 @@ func (o *Oracle) SetReader(f func(io.Reader) ([]byte, error)) {
 }
 
 func (o *Oracle) SetSockets(c, s net.Conn) {
-	defer HandlePanic()
+	defer common.HandlePanic()
 	o.client = c
 	o.server = s
 }
 
 func (o *Oracle) Close() {
-	defer HandlePanic()
+	defer common.HandlePanic()
 	o.client.Close()
 	o.server.Close()
 }
@@ -44,7 +45,7 @@ func (o *Oracle) DefaultPort() uint {
 }
 
 func (o *Oracle) Handler() error {
-	defer HandlePanic()
+	defer common.HandlePanic()
 	defer o.Close()
 
 	for {
@@ -77,17 +78,18 @@ func (o *Oracle) Handler() error {
 				case 0x03:
 					switch payload[1] {
 					case 0x5e: //reading query
-						query, _ := PascalString(payload[70:])
-						context := QueryContext{
+						query, _ := common.PascalString(payload[70:])
+						context := common.QueryContext{
 							Query:    query,
 							Database: o.currentDB,
 							User:     o.username,
-							Client:   RemoteAddrToIP(o.client.RemoteAddr()),
+							Client:   common.RemoteAddrToIP(o.client.RemoteAddr()),
 							Time:     time.Now(),
 						}
-						ProcessContext(context)
+						log.Debug(context)
+						//ProcessContext(context)
 					case 0x76: // 读取用户名
-						val, _ := PascalString(payload[19:])
+						val, _ := common.PascalString(payload[19:])
 						o.username = val
 						log.Debug("用户名: %s", o.username)
 					}

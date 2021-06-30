@@ -17,7 +17,7 @@ func Login(u *models.User) (string, error) {
 	}
 }
 
-func Verify(token string) (string, error) {
+func VerifyToken(token string) (string, error) {
 	claims, err := common.ParseToken(token)
 	if err != nil {
 		return "", nil
@@ -25,7 +25,7 @@ func Verify(token string) (string, error) {
 	return claims.Username, nil
 }
 
-func Create(u *models.User) bool {
+func CreateUser(u *models.User) bool {
 	err := db.Db.Create(u).Error
 	if err != nil {
 		return false
@@ -34,15 +34,15 @@ func Create(u *models.User) bool {
 	}
 }
 
-func Delete(id uuid.UUID) bool {
-	err := db.Db.Delete(&models.User{}, id).Error
+func DeleteUser(username string) bool {
+	err := db.Db.Delete(&models.User{}, username).Error
 	if err != nil {
 		return false
 	}
 	return true
 }
 
-func Update(id uuid.UUID, u *models.User) bool {
+func UpdateUser(id uuid.UUID, u *models.User) bool {
 	tmp := db.Db.First(&models.User{}, id)
 	err := db.Db.Model(u).Updates(&tmp).Error
 	if err != nil {

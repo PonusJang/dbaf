@@ -2,6 +2,7 @@ package dbms
 
 import (
 	"crypto/tls"
+	"dbaf/common"
 	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -38,7 +39,7 @@ func (m *MSSQL) SetSockets(c, s net.Conn) {
 }
 
 func (m *MSSQL) Close() {
-	defer HandlePanic()
+	defer common.HandlePanic()
 	m.client.Close()
 	m.server.Close()
 }
@@ -48,7 +49,7 @@ func (m *MSSQL) DefaultPort() uint {
 }
 
 func (m *MSSQL) Handler() error {
-	defer HandlePanic()
+	defer common.HandlePanic()
 	defer m.Close()
 
 	success, err := m.handleLogin()
@@ -69,14 +70,15 @@ func (m *MSSQL) Handler() error {
 		switch buf[0] {
 		case 0x01: //SQL batch
 			query := buf[8:]
-			context := QueryContext{
+			context := common.QueryContext{
 				Query:    query,
 				Database: m.currentDB,
 				User:     m.username,
-				Client:   RemoteAddrToIP(m.client.RemoteAddr()),
+				Client:   common.RemoteAddrToIP(m.client.RemoteAddr()),
 				Time:     time.Now(),
 			}
-			ProcessContext(context)
+
+			log.Debug(context)
 		}
 
 		_, err = m.server.Write(buf)

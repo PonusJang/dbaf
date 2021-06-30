@@ -2,6 +2,7 @@ package dbms
 
 import (
 	"bytes"
+	logger "dbaf/log"
 	"io"
 	"net"
 )
@@ -33,11 +34,18 @@ func ReadPacket(conn io.Reader) ([]byte, error) {
 func ReadWrite(src, dst net.Conn, reader func(io.Reader) ([]byte, error)) error {
 
 	buf, err := reader(src)
-
+	logger.Debug("读取......")
+	logger.Debug(len(buf))
 	if err != nil {
+		logger.Debug("读取...出错了...")
 		return err
 	}
-
+	logger.Debug("写入...........")
 	_, err = dst.Write(buf)
+	if err != nil {
+		logger.Debug("写入...出错了...")
+		return err
+	}
 	return err
+
 }
