@@ -1,6 +1,7 @@
 package databases
 
 import (
+	"dbaf/manager/models"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -17,4 +18,10 @@ func init() {
 	if Db.Error != nil {
 		fmt.Printf("database error %v", Db.Error)
 	}
+
+	Db.AutoMigrate(&models.User{})
+
+	Db.AutoMigrate(&models.DbForward{})
+
+	Db.AutoMigrate(&models.Role{})
 }

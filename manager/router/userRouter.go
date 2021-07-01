@@ -6,9 +6,13 @@ import (
 )
 
 func LoadUserRouter(g *gin.Engine) {
-	userRouter := g.Group("user")
+	userRouter := g.Group("api/v1/user")
 	{
-		//user.GET("/user/getList",)
-		userRouter.POST("/user/create", controllers.CreateUser)
+		userRouter.POST("/login", controllers.Login)
+		userRouter.POST("/create", controllers.CreateUser)
+		userRouter.GET("/delete", controllers.DeleteUser)
+		userRouter.POST("/update", controllers.UpdateUser)
+		userRouter.GET("/getList", controllers.GetUserList)
+		userRouter.GET("/findByUsername", controllers.FindByUsername)
 	}
 }

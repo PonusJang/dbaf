@@ -33,3 +33,8 @@ type Ret struct {
 	Msg    string      `json:msg`
 	Data   interface{} `json:data`
 }
+
+type ResData struct {
+	Count int
+	Data  interface{}
+}

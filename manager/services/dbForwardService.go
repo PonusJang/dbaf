@@ -4,7 +4,6 @@ import (
 	log "dbaf/log"
 	db "dbaf/manager/databases"
 	"dbaf/manager/models"
-	uuid "github.com/satori/go.uuid"
 )
 
 func AddDbForward(d *models.DbForward) bool {
@@ -16,7 +15,7 @@ func AddDbForward(d *models.DbForward) bool {
 	return true
 }
 
-func DeleteForward(id uuid.UUID) bool {
+func DeleteForward(id int) bool {
 	err := db.Db.Delete(id).Error
 	if err != nil {
 		log.Error(err)
@@ -25,7 +24,7 @@ func DeleteForward(id uuid.UUID) bool {
 	return true
 }
 
-func UpdateForward(id uuid.UUID) bool {
+func UpdateForward(id int) bool {
 	err := db.Db.Update(id).Error
 	if err != nil {
 		log.Error(err)
@@ -34,11 +33,40 @@ func UpdateForward(id uuid.UUID) bool {
 	return true
 }
 
-func FindForwardByServer(server string) bool {
-	err := db.Db.Find(server).Error
-	if err != nil {
-		log.Error(err)
-		return false
+func FindForwardByServer(server string) []models.DbForward {
+	var tmp []models.DbForward
+	db.Db.Where("server = ?", server).Find(&tmp)
+	return tmp
+}
+
+func GetDbForwardList(page int, limit int, param map[string]interface{}) (int, []models.DbForward) {
+	var tmp []models.DbForward
+	var count int
+
+	if len(param) > 0 {
+		for k, v := range param {
+			switch k {
+			case "dbIp":
+				if v != "" {
+					db.Db.Where("dbIp = ?", v).Limit(limit).Offset(page * limit).Order("created desc").Find(&tmp).Count(&count)
+					break
+				}
+			case "dbPort":
+				if v != 0 {
+					db.Db.Where("dbPort = ?", v).Limit(limit).Offset(page * limit).Order("created desc").Find(&tmp).Count(&count)
+					break
+				}
+			case "listenPort":
+				if v != 0 {
+					db.Db.Where("listenPort = ?", v).Limit(limit).Offset(page * limit).Order("created desc").Find(&tmp).Count(&count)
+					break
+				}
+			default:
+				db.Db.Limit(limit).Offset(page * limit).Order("created desc").Find(&tmp).Count(&count)
+			}
+		}
+	} else {
+		db.Db.Limit(limit).Offset(page * limit).Order("created desc").Find(&tmp).Count(&count)
 	}
-	return true
+	return count, tmp
 }
