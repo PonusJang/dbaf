@@ -1,38 +1,53 @@
 package controllers
 
 import (
+	"dbaf/dbms"
 	"dbaf/manager/models"
 	"dbaf/manager/services"
 	"github.com/gin-gonic/gin"
+	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 //添加
 
 func AddDbForward(c *gin.Context) {
-	name := c.PostForm("name")
-	listenPort := c.PostForm("listenPort")
-	dbIp := c.PostForm("dbIp")
-	dbPort := c.PostForm("dbPort")
-	dbType := c.PostForm("type")
-
-	lport, _ := strconv.Atoi(listenPort)
-	dport, _ := strconv.Atoi(dbPort)
-	t, _ := strconv.Atoi(dbType)
-
-	tmp := &models.DbForward{Name: name, ListenPort: lport, DbIp: dbIp, DbPort: dport, Type: t}
-	status := services.AddDbForward(tmp)
-	if status {
-		c.JSON(http.StatusOK, Ret{CODE_SUCCESS, status, "", nil})
+	var tmp DbForwardForm
+	err := c.ShouldBindJSON(&tmp)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Ret{CODE_PARAM_ERROR, false, MSG_PARAM_ERROR, nil})
+		return
 	}
-	c.JSON(http.StatusOK, Ret{CODE_FALURE, status, "", nil})
+	tmpDbForward := &models.DbForward{Name: tmp.Name, ListenPort: tmp.ListenPort, DbIp: tmp.DbIp, DbPort: tmp.DbPort, Type: tmp.DbType, Created: time.Now()}
+	status := services.AddDbForward(tmpDbForward)
+	if status {
+		t := dbms.D{Id: rand.Int(), F: tmpDbForward}
+		dbms.DChan <- t
+		c.JSON(http.StatusOK, Ret{CODE_SUCCESS, status, MSG_SUCCESS, nil})
+		return
+	}
+	c.JSON(http.StatusOK, Ret{CODE_FALURE, status, MSG_FAILURE, nil})
 }
 
 //更新
 
 func UpdateDbForward(c *gin.Context) {
-
+	id := c.Query("id")
+	iD, err := strconv.Atoi(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Ret{CODE_PARAM_ERROR, false, MSG_PARAM_ERROR, nil})
+		return
+	}
+	var tmp DbForwardForm
+	err = c.ShouldBindJSON(&tmp)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Ret{CODE_PARAM_ERROR, false, MSG_PARAM_ERROR, nil})
+		return
+	}
+	tmpDbForward := &models.DbForward{Name: tmp.Name, ListenPort: tmp.ListenPort, DbIp: tmp.DbIp, DbPort: tmp.DbPort, Type: tmp.DbType}
+	services.UpdateForward(iD, tmpDbForward)
 	c.JSON(200, Ret{CODE_FALURE, false, "", nil})
 }
 
@@ -54,6 +69,11 @@ func DeleteDbForward(c *gin.Context) {
 }
 
 //查找
+
+func GetDbForwardAll(c *gin.Context) {
+	count, data := services.GetDbForwardAll()
+	c.JSON(http.StatusOK, Ret{CODE_FALURE, false, "", gin.H{"count": count, "data": data}})
+}
 
 func FindDbForwardByServer(c *gin.Context) {
 	server := c.Query("server")

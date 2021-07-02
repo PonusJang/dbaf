@@ -6,12 +6,13 @@ import (
 )
 
 func LoadDbForwardRouter(g *gin.Engine) {
-	userRouter := g.Group("dbForward")
+	userRouter := g.Group("api/v1/dbForward")
 	{
-		userRouter.POST("/dbForward/add", controllers.AddDbForward)
-		userRouter.POST("/dbForward/update", controllers.UpdateDbForward)
-		userRouter.GET("/dbForward/delete", controllers.DeleteDbForward)
-		userRouter.GET("/dbForward/findByServer", controllers.FindDbForwardByServer)
-		userRouter.GET("/dbForward/getList", controllers.GetDbForwardList)
+		userRouter.POST("/add", controllers.AddDbForward)
+		userRouter.POST("/update", controllers.UpdateDbForward)
+		userRouter.GET("/delete", controllers.DeleteDbForward)
+		userRouter.GET("/findByServer", controllers.FindDbForwardByServer)
+		userRouter.GET("/getList", controllers.GetDbForwardList)
+		userRouter.GET("/getAll", controllers.GetDbForwardAll)
 	}
 }

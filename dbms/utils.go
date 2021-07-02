@@ -1,18 +1,18 @@
-package main
+package dbms
 
 import (
-	db "dbaf/dbms"
 	"dbaf/log"
+	"dbaf/manager/models"
 	"io"
 	"net"
 	"time"
 )
 
-func generateDBMS() (db.DBMS, func(io.Reader) ([]byte, error)) {
-	return new(db.MySQL), db.MySQLReadPacket
+func generateDBMS() (DBMS, func(io.Reader) ([]byte, error)) {
+	return new(MySQL), MySQLReadPacket
 }
 
-func handleClient(listenConn net.Conn, serverAddr *net.TCPAddr) error {
+func HandleClient(listenConn net.Conn, serverAddr *net.TCPAddr) error {
 	d, reader := generateDBMS()
 	log.Debug("客户端: %s", listenConn.RemoteAddr())
 	serverConn, err := net.DialTCP("tcp", nil, serverAddr)
@@ -37,3 +37,20 @@ func handleClient(listenConn net.Conn, serverAddr *net.TCPAddr) error {
 	}
 	return err
 }
+
+type D struct {
+	Id int
+	F  *models.DbForward
+}
+
+type P struct {
+	Id int
+	S  *net.TCPAddr
+	L  net.Listener
+}
+
+var (
+	DChan      = make(chan D, 10)
+	PChan      = make(chan P, 10)
+	PCloseChan = make(chan P, 10)
+)
