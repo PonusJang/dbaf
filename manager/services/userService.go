@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	logger "dbaf/log"
 	"dbaf/manager/common"
 	db "dbaf/manager/databases"
@@ -13,9 +14,13 @@ func Login(u *models.User) (string, error) {
 	var tmpUser models.User
 	db.Db.Model(&models.User{}).Where("username = ?", u.Username).First(&tmpUser)
 	h := sm3.New()
-	h.Write([]byte(u.Password + tmpUser.Salt))
-	if tmpUser.Password == string(h.Sum(nil)) {
-		return common.GenerateToken(u.Username, u.Password)
+	logger.Debug(tmpUser.Password)
+	logger.Debug(u.Password)
+	logger.Debug(tmpUser.Salt)
+	h.Write(append(u.Password, tmpUser.Salt...))
+	if bytes.Equal(tmpUser.Password, h.Sum(nil)) {
+		db.Db.Model(&models.User{}).Where("username = ?", u.Username).Update("lastLogonIp", u.LastLogonIp).Update("lastLogonDate", u.LastLogonDate)
+		return common.GenerateToken(u.Username, string(u.Password))
 	} else {
 		return "", nil
 	}
@@ -49,10 +54,10 @@ func CreateUser(u *models.User) bool {
 	if count > 0 {
 		return false
 	}
-	u.Salt = GetRandomString(8)
+	u.Salt = []byte(GetRandomString(8))
 	h := sm3.New()
-	h.Write([]byte(u.Password + u.Salt))
-	u.Password = string(h.Sum(nil))
+	h.Write(append(u.Password, u.Salt...))
+	u.Password = h.Sum(nil)
 	err := db.Db.Create(u).Error
 	if err != nil {
 		return false

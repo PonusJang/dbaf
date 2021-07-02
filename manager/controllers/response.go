@@ -21,6 +21,7 @@ const (
 	MSG_ERROR           = "错误"
 	MSG_PARAM_ERROR     = "参数错误"
 	MSG_USER_PASS_ERROR = "用户名密码错误"
+	MSG_LOGIN_SUCCESS   = "登陆成功"
 	MSG_TOKEN_ERROR     = "Token错误"
 	MSG_TOKEN_EXPIRE    = "Token超时"
 )
@@ -37,4 +38,8 @@ type Ret struct {
 type ResData struct {
 	Count int
 	Data  interface{}
+}
+
+type Token struct {
+	Token string `json:"token"`
 }

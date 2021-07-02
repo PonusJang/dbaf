@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	logger "dbaf/log"
 	"dbaf/manager/models"
 	"dbaf/manager/services"
 	"github.com/gin-gonic/gin"
@@ -10,28 +9,22 @@ import (
 	"time"
 )
 
-type Token struct {
-	token string `json:"token"`
-}
-
-type UserReq struct {
-	username string `json:"username"  binding:"required"`
-	password string `json:"password"  binding:"required"`
-}
-
 //添加用户
 
 func CreateUser(c *gin.Context) {
-	var  userReq UserReq
-	err := c.ShouldBindJSON(&userReq); if err!=nil {
-		c.JSON(http.StatusBadRequest, Ret{CODE_SUCCESS, true, MSG_SUCCESS, nil})
+
+	var userReq UserReqForm
+	err := c.BindJSON(&userReq)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Ret{CODE_PARAM_ERROR, false, MSG_PARAM_ERROR, nil})
 		return
 	}
-	logger.Debug(c.Request.Body.)
-	logger.Info(userReq)
-	logger.Info(userReq.username)
-	logger.Info(userReq.password)
-	u := &models.User{Username: userReq.username, Password: userReq.password}
+	if userReq.Username == "" || userReq.Password == "" {
+		c.JSON(http.StatusLengthRequired, Ret{CODE_PARAM_ERROR, false, MSG_PARAM_ERROR, nil})
+		return
+	}
+	pass := []byte(userReq.Password)
+	u := &models.User{Username: userReq.Username, Password: pass, CreatedAt: time.Now()}
 	if services.CreateUser(u) {
 		c.JSON(http.StatusOK, Ret{CODE_SUCCESS, true, MSG_SUCCESS, nil})
 		return
@@ -42,16 +35,27 @@ func CreateUser(c *gin.Context) {
 //登录
 
 func Login(c *gin.Context) {
-	username := c.PostForm("username")
-	password := c.PostForm("password")
-	loginIp := c.Request.RemoteAddr
-	u := &models.User{Username: username, Password: password,LastLogonIp: loginIp,LastLogonDate: time.Now()}
-	token, err := services.Login(u)
+
+	var userReq UserReqForm
+	err := c.BindJSON(&userReq)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, Ret{CODE_PARAM_ERROR, false, MSG_PARAM_ERROR, nil})
+		return
+	}
+	if userReq.Username == "" || userReq.Password == "" {
+		c.JSON(http.StatusLengthRequired, Ret{CODE_PARAM_ERROR, false, MSG_PARAM_ERROR, nil})
+		return
+	}
+
+	loginIp := c.Request.RemoteAddr
+	pass := []byte(userReq.Password)
+	u := &models.User{Username: userReq.Username, Password: pass, LastLogonIp: loginIp, LastLogonDate: time.Now()}
+	token, err := services.Login(u)
+	if err != nil || token == "" {
 		c.JSON(http.StatusOK, Ret{CODE_LOGIN_FAILURE, false, MSG_FAILURE, nil})
 	} else {
-		data := Token{token: token}
-		c.JSON(http.StatusOK, Ret{CODE_LOGIN_SUCCESS, true, MSG_SUCCESS, data})
+		data := Token{Token: token}
+		c.JSON(http.StatusOK, Ret{CODE_LOGIN_SUCCESS, true, MSG_LOGIN_SUCCESS, data})
 	}
 }
 
@@ -59,7 +63,7 @@ func Login(c *gin.Context) {
 
 func DeleteUser(c *gin.Context) {
 	id := c.Query("id")
-	iD,err := strconv.Atoi(id)
+	iD, err := strconv.Atoi(id)
 	if err != nil {
 		c.JSON(http.StatusOK, Ret{CODE_FALURE, false, MSG_FAILURE, nil})
 	}
@@ -71,10 +75,9 @@ func DeleteUser(c *gin.Context) {
 	}
 }
 
-
-func UpdateUser(c *gin.Context){
+func UpdateUser(c *gin.Context) {
 	id := c.PostForm("id")
-	iD,err := strconv.Atoi(id)
+	iD, err := strconv.Atoi(id)
 	if err != nil {
 		c.JSON(http.StatusOK, Ret{CODE_FALURE, false, MSG_FAILURE, nil})
 	}
@@ -82,37 +85,37 @@ func UpdateUser(c *gin.Context){
 	password := c.PostForm("password")
 	param["password"] = password
 
-	if services.UpdateUser(iD,param){
+	if services.UpdateUser(iD, param) {
 		c.JSON(http.StatusOK, Ret{CODE_FALURE, false, MSG_FAILURE, nil})
-	}else {
+	} else {
 		c.JSON(http.StatusOK, Ret{CODE_LOGIN_SUCCESS, true, MSG_SUCCESS, nil})
 	}
 }
 
-func GetUserList(c *gin.Context)  {
+func GetUserList(c *gin.Context) {
 
-	page := c.DefaultQuery("page","0")
-	limit := c.DefaultQuery("page","10")
+	page := c.DefaultQuery("page", "0")
+	limit := c.DefaultQuery("page", "10")
 
-	pageNo,err1 := strconv.Atoi(page)
-	if err1!=nil{
+	pageNo, err1 := strconv.Atoi(page)
+	if err1 != nil {
 		c.JSON(http.StatusBadRequest, Ret{CODE_FALURE, false, MSG_FAILURE, nil})
 	}
-	pageSize,err2 :=strconv.Atoi(limit)
-	if err2!=nil{
+	pageSize, err2 := strconv.Atoi(limit)
+	if err2 != nil {
 		c.JSON(http.StatusBadRequest, Ret{CODE_FALURE, false, MSG_FAILURE, nil})
 	}
 
 	var param map[string]interface{}
 	username := c.Query("username")
-	if username!="" {
+	if username != "" {
 		param["username"] = username
 	}
-	count,data := services.GetUserList(pageNo, pageSize,param)
-	resData := ResData{Count: count,Data: data}
+	count, data := services.GetUserList(pageNo, pageSize, param)
+	resData := ResData{Count: count, Data: data}
 	c.JSON(http.StatusOK, Ret{CODE_FALURE, false, "", resData})
 }
 
-func FindByUsername(c *gin.Context)  {
+func FindByUsername(c *gin.Context) {
 
 }
