@@ -7,6 +7,7 @@ import (
 	"dbaf/log"
 	"io"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -94,6 +95,13 @@ func (m *MySQL) Handler() error {
 		err = ReadWrite(m.server, m.client, m.reader)
 		if err != nil {
 			log.Error("转发失败")
+			if err == io.EOF {
+				continue
+			}
+			if strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host.") {
+				return err
+			}
+			log.Error(err.Error())
 			return err
 		}
 	}

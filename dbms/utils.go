@@ -33,6 +33,7 @@ func HandleClient(listenConn net.Conn, serverAddr *net.TCPAddr) error {
 	d.SetReader(reader)
 	err = d.Handler()
 	if err != nil {
+
 		log.Warn(err)
 	}
 	return err
