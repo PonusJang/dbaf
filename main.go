@@ -14,7 +14,7 @@ import (
 
 func getServerAndListener(d *models.DbForward) (*net.TCPAddr, net.Listener) {
 	serverAddr, _ := net.ResolveTCPAddr("tcp", d.DbIp+":"+strconv.Itoa(d.DbPort))
-	l, err := net.Listen("tcp", "192.168.26.171:"+strconv.Itoa(d.ListenPort))
+	l, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(d.ListenPort))
 	if err != nil {
 		panic(err)
 	}
