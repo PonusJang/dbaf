@@ -21,12 +21,13 @@ type QueryContext struct {
 }
 
 type Record struct {
-	Id           uuid.UUID `json:"id,"bson:"id"`
-	Client       string    `json:"client,"bson:"client"`
-	Server       string    `json:"server,"bson:"server"`
-	Query        string    `json:"query",bson:"query"`
-	IllegalByLib bool      `json:"illegal_by_lib",bson:"illegal_by_lib"`
-	Created      time.Time `json:"created",bson:"created"`
+	Id              uuid.UUID `json:"id,"bson:"id"`
+	Client          string    `json:"client,"bson:"client"`
+	Server          string    `json:"server,"bson:"server"`
+	Query           string    `json:"query",bson:"query"`
+	IllegalByLib    bool      `json:"illegal_by_lib",bson:"illegal_by_lib"`
+	IllegalByLibMsg string    `json:"illegal_by_lib_msg," bson:"illegal_by_lib_msg"`
+	Created         time.Time `json:"created",bson:"created"`
 }
 
 var decodingTable = [...]byte{
@@ -339,12 +340,13 @@ func ProcessContext(context QueryContext) bool {
 	if err != nil {
 		logger.Error(err)
 		tmp := Record{
-			Id:           uuid.NewV4(),
-			Query:        string(context.Query),
-			Client:       context.Client,
-			Server:       context.Server,
-			IllegalByLib: true,
-			Created:      time.Now(),
+			Id:              uuid.NewV4(),
+			Query:           string(context.Query),
+			Client:          context.Client,
+			Server:          context.Server,
+			IllegalByLib:    true,
+			IllegalByLibMsg: err.Error(),
+			Created:         time.Now(),
 		}
 		logger.Info(tmp.Server)
 		mgoSession := GetSession()
