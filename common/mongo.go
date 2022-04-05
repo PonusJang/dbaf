@@ -12,7 +12,7 @@ var (
 func GetSession() *mgo.Session {
 	if mgoSession == nil {
 		var err error
-		mgoSession, err = mgo.Dial("10.10.8.6:27017")
+		mgoSession, err = mgo.Dial("127.0.0.1:27017")
 		if err != nil {
 			panic(err) //直接终止程序运行
 		}
